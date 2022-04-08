@@ -532,6 +532,7 @@ class ${_m.modelName} extends SqfEntityModelProvider {
     databaseName = $_dbName;
     $_dbPassword $_dbVersion
     preSaveAction = ${_m.instanceName}.preSaveAction;
+    postSaveAction = ${_m.instanceName}.postSaveAction;
     logFunction = ${_m.instanceName}.logFunction;
     $__tableList
     $__sequenceList

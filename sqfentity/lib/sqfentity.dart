@@ -381,6 +381,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
       }
     } catch (e) {
       print(e.toString());
+      rethrow; // We need to throw any error so that if insert fails, postSaveAction shouldn't work
     }
     return result;
   }

@@ -326,6 +326,8 @@ class SqfEntityFieldRelationship implements SqfEntityField {
 
 typedef PreSaveAction = Future<TableBase> Function(String tableName, TableBase);
 
+typedef PostSaveAction = Future<TableBase> Function(String tableName, TableBase);
+
 /// Log events on failure of insert/update operation
 ///    Example:
 /// ```
@@ -383,6 +385,7 @@ class SqfEntityModel {
       this.dbVersion,
       this.defaultColumns,
       this.preSaveAction,
+      this.postSaveAction,
       this.logFunction,
       this.databasePath});
 
@@ -435,6 +438,7 @@ class SqfEntityModel {
   ///    }
   /// ```
   final PreSaveAction? preSaveAction;
+  final PostSaveAction? postSaveAction;
 
   /// Log events on failure of insert/update operation
   final LogFunction? logFunction;
@@ -465,6 +469,7 @@ class SqfEntityModelConverter {
       ..sequences = toSequences()
       ..bundledDatabasePath = model.bundledDatabasePath
       ..preSaveAction = model.preSaveAction
+      ..postSaveAction = model.postSaveAction
       ..logFunction = model.logFunction
       ..init();
   }
@@ -1698,7 +1703,9 @@ class SqfEntityObjectBuilder {
        'INSERT ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '\${isSaved! ? \'OR REPLACE\':\'\'}' : 'OR REPLACE'} INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll("this.", "")})  VALUES ($_createConstructureArgsWithId)', toArgsWithIds(), ignoreBatch);
         result.success=true;
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'isSaved = true;' : ''}
-        
+        if (_mn${_table.modelName}.postSaveAction != null) {
+          await _mn${_table.modelName}.postSaveAction!(_mn${_table.modelName}.tableName, toMap())
+        }
       } catch (e){
         result.errorMessage = e.toString();
       }
@@ -4275,6 +4282,7 @@ abstract class SqfEntityModelBase {
 
   /// Action Execute pre save
   PreSaveAction? preSaveAction;
+  PostSaveAction? postSaveAction;
 
   LogFunction? logFunction;
 
