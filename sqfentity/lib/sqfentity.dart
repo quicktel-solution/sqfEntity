@@ -294,7 +294,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
       final res = await updateOrThrow(obj);
 
       if (_dbModel!.postSaveAction != null) {
-        obj = await _dbModel!.postSaveAction!(_tableName!, obj, 'UPDATE') as T;
+        final record = obj.toMap(forQuery: true);
+        await _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
       }
 
       return res;
@@ -340,7 +341,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
       /// Leave it in this format for Throw to stay in this catch
       final res = await insertOrThrow(obj, ignoreBatch);
       if (_dbModel!.postSaveAction != null) {
-        obj = await _dbModel!.postSaveAction!(_tableName!, obj, 'INSERT') as T;
+        final record = obj.toMap(forQuery: true);
+        await _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
       }
       return res;
     } catch (error, stackTrace) {
@@ -383,6 +385,20 @@ class SqfEntityProvider extends SqfEntityModelBase {
       if (openedBatch[_dbModel!.databaseName!] == null || ignoreBatch) {
         final Database db = (await this.db)!;
         result = await db.rawInsert(pSql, params);
+        if (_dbModel!.postSaveAction != null) {
+          final openBracket = pSql.split('(')[1];
+          final closeBracket = openBracket.split(')')[0];
+
+          final keys = closeBracket.split(',');
+
+          final record = {};
+
+          for (int i = 0; i < params!.length; i++) {
+            record[keys[i]] = params[i];
+          }
+
+          _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
+        }
       } else {
         openedBatch[_dbModel!.databaseName!]!.rawInsert(pSql, params);
         result = 1; // Batch rawInsert do not returns any value (void)

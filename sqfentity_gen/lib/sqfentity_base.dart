@@ -326,8 +326,8 @@ class SqfEntityFieldRelationship implements SqfEntityField {
 
 typedef PreSaveAction = Future<TableBase> Function(String tableName, TableBase);
 
-typedef PostSaveAction = Future<TableBase> Function(
-    String tableName, TableBase, String action);
+typedef PostSaveAction = Future<void> Function(
+    String tableName, dynamic, String action);
 
 /// Log events on failure of insert/update operation
 ///    Example:
