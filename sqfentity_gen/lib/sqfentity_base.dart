@@ -326,7 +326,8 @@ class SqfEntityFieldRelationship implements SqfEntityField {
 
 typedef PreSaveAction = Future<TableBase> Function(String tableName, TableBase);
 
-typedef PostSaveAction = Future<TableBase> Function(String tableName, TableBase);
+typedef PostSaveAction = Future<TableBase> Function(
+    String tableName, TableBase, String? action);
 
 /// Log events on failure of insert/update operation
 ///    Example:
@@ -1703,9 +1704,6 @@ class SqfEntityObjectBuilder {
        'INSERT ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '\${isSaved! ? \'OR REPLACE\':\'\'}' : 'OR REPLACE'} INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll("this.", "")})  VALUES ($_createConstructureArgsWithId)', toArgsWithIds(), ignoreBatch);
         result.success=true;
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'isSaved = true;' : ''}
-        if (_mn${_table.modelName}.postSaveAction != null) {
-          await _mn${_table.modelName}.postSaveAction!(_mn${_table.modelName}.tableName, toMap())
-        }
       } catch (e){
         result.errorMessage = e.toString();
       }

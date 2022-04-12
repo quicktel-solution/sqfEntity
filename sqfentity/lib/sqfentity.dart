@@ -292,6 +292,11 @@ class SqfEntityProvider extends SqfEntityModelBase {
     try {
       /// Leave it in this format for Throw to stay in this catch
       final res = await updateOrThrow(obj);
+
+      if (_dbModel!.postSaveAction != null) {
+        obj = await _dbModel!.postSaveAction!(_tableName!, obj, 'UPDATE') as T;
+      }
+
       return res;
     } catch (error, stackTrace) {
       obj.saveResult = BoolResult(
@@ -334,6 +339,9 @@ class SqfEntityProvider extends SqfEntityModelBase {
     try {
       /// Leave it in this format for Throw to stay in this catch
       final res = await insertOrThrow(obj, ignoreBatch);
+      if (_dbModel!.postSaveAction != null) {
+        obj = await _dbModel!.postSaveAction!(_tableName!, obj, 'INSERT') as T;
+      }
       return res;
     } catch (error, stackTrace) {
       obj.saveResult = BoolResult(
