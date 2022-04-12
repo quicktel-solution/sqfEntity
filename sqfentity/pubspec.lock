@@ -182,10 +182,12 @@ packages:
   sqfentity_gen:
     dependency: "direct main"
     description:
-      name: sqfentity_gen
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "2.2.0+5"
+      path: sqfentity_gen
+      ref: "mz/post-safe-action"
+      resolved-ref: "3271cb2954f0f68317fd058e84533b16d541357b"
+      url: "https://github.com/quicktel-solution/sqfEntity.git"
+    source: git
+    version: "2.2.0+7"
   sqflite_common:
     dependency: "direct main"
     description:
