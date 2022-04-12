@@ -327,7 +327,7 @@ class SqfEntityFieldRelationship implements SqfEntityField {
 typedef PreSaveAction = Future<TableBase> Function(String tableName, TableBase);
 
 typedef PostSaveAction = Future<TableBase> Function(
-    String tableName, TableBase, String? action);
+    String tableName, TableBase, String action);
 
 /// Log events on failure of insert/update operation
 ///    Example:
@@ -439,6 +439,20 @@ class SqfEntityModel {
   ///    }
   /// ```
   final PreSaveAction? preSaveAction;
+
+  /// Action Execute post save. (Perform actions after each insert/update)
+  ///
+  /// Example:
+  /// ```
+  ///    @SqfEntityBuilder(myDbModel)
+  ///    const myDbModel = SqfEntityModel(
+  ///        ...
+  ///        postSaveAction: getPostSaveAction,
+  ///    );
+  ///    Future<TableBase> getPostSaveAction(String tableName, TableBase obj, String? action) async {
+  ///       return obj;
+  ///    }
+  /// ```
   final PostSaveAction? postSaveAction;
 
   /// Log events on failure of insert/update operation

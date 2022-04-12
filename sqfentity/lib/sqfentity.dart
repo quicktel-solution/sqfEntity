@@ -431,6 +431,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
     if (openedBatch[_dbModel!.databaseName!] == null) {
       final Database db = (await this.db)!;
       for (var t in objList) {
+        //Todo(bynalab): add postSaveAction here when stable.
         final result = BoolResult(success: false);
         try {
           final o = t.toMap(forQuery: true);
