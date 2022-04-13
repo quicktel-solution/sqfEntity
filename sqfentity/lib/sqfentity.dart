@@ -295,7 +295,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
 
       if (_dbModel!.postSaveAction != null) {
         final record = obj.toMap(forQuery: true);
-        await _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
+        await _dbModel!.postSaveAction!(_tableName!, record, 'UPDATE');
       }
 
       return res;
@@ -397,7 +397,9 @@ class SqfEntityProvider extends SqfEntityModelBase {
             record[keys[i]] = params[i];
           }
 
-          _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
+          final action = pSql.contains('OR REPLACE') ? 'UPSERT' : 'INSERT';
+
+          await _dbModel!.postSaveAction!(_tableName!, record, action);
         }
       } else {
         openedBatch[_dbModel!.databaseName!]!.rawInsert(pSql, params);
