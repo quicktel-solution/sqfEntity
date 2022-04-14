@@ -21,6 +21,11 @@ class SqfEntityBuilder {
   final SqfEntityModel model;
 }
 
+enum SoftDeleteType {
+  deleteAt,
+  isDeleted,
+}
+
 class SqfEntityTable {
   /// This class is required for TABLE definitions using in /lib/model/model.dart file
   /// Simple table definition must be below:
@@ -40,6 +45,7 @@ class SqfEntityTable {
       this.primaryKeyName,
       this.fields,
       this.useSoftDeleting,
+      this.softDeleteType,
       this.primaryKeyType,
       this.defaultJsonUrl,
       this.modelName,
@@ -54,6 +60,7 @@ class SqfEntityTable {
   final String? primaryKeyName;
   final List<SqfEntityField>? fields;
   final bool? useSoftDeleting;
+  final SoftDeleteType? softDeleteType;
   final PrimaryKeyType? primaryKeyType;
   final String? modelName;
   final String? defaultJsonUrl;
@@ -803,7 +810,7 @@ class SqfEntityObjectBuilder {
     final String toString = '''
   // region ${_table.modelName}
   class ${_table.modelName} extends TableBase ${_table.abstractModelName != null ? 'implements ${_table.abstractModelName}' : ''} {
-    ${_table.modelName}({$_createBaseConstructure}) { _setDefaultValues(); softDeleteActivated = ${_table.useSoftDeleting.toString()};}
+    ${_table.modelName}({$_createBaseConstructure}) { _setDefaultValues(); softDeleteActivated = ${_table.useSoftDeleting.toString()}; softDeleteType = ${_table.softDeleteType} }
     ${_table.modelName}.withFields(${_table.createConstructure}){ _setDefaultValues();}
     ${_table.modelName}.withId(${_table.createConstructureWithId}){ _setDefaultValues();}
     // fromMap v2.0
@@ -1533,11 +1540,12 @@ class SqfEntityObjectBuilder {
       retVal = varResult + retVal;
     }
 
+    final deleteAction = _table.softDeleteType == SoftDeleteType.isDeleted ? "{'isDeleted': 1}" : "{'deletedAt': ${DateTime.now()}}";
     return retVal += '''
       if (!_softDeleteActivated || hardDelete${_table.useSoftDeleting != null && _table.useSoftDeleting! ? ' || isDeleted!' : ''}) {
       return _mn${_table.modelName}.delete(QueryParams(whereString: '$_getByIdWhereStr', whereArguments: [$_getByIdParameters]));}
       else {
-      return _mn${_table.modelName}.updateBatch(QueryParams(whereString: '$_getByIdWhereStr', whereArguments: [$_getByIdParameters]), {'isDeleted': 1});}''';
+      return _mn${_table.modelName}.updateBatch(QueryParams(whereString: '$_getByIdWhereStr', whereArguments: [$_getByIdParameters]), $deleteAction);}''';
   }
 
   String __recoverMethodSingle() {
@@ -3397,12 +3405,14 @@ abstract class ConjunctionBase extends FluentBase {
         whereString += param.whereString;
       }
     }
+
+    final deleteTypeString = _tableObj!.softDeleteType == SoftDeleteType.isDeleted ? 'ifnull(isDeleted,0)=0' : 'deletedAt is null';
     if (_tableObj!.softDeleteActivated) {
       if (whereString != '') {
         whereString =
-            '${!_getIsDeleted ? 'ifnull(isDeleted,0)=0 AND' : ''} ($whereString)';
+            '${!_getIsDeleted ? '$deleteTypeString AND' : ''} ($whereString)';
       } else if (!_getIsDeleted) {
-        whereString = 'ifnull(isDeleted,0)=0';
+        whereString = deleteTypeString;
       }
     }
 
@@ -3534,6 +3544,7 @@ class SqfEntityTableBase {
   List<SqfEntityFieldType>? fields;
   List<TableCollectionBase>? collections;
   bool? useSoftDeleting = false;
+  SoftDeleteType? softDeleteType = SoftDeleteType.isDeleted;
   PrimaryKeyType? primaryKeyType = PrimaryKeyType.integer_auto_incremental;
   String? modelName;
   String? dbModel;
@@ -3684,7 +3695,11 @@ class SqfEntityTableBase {
     }
 
     if (useSoftDeleting!) {
-      _createTableSQL.write(', isDeleted numeric NOT NULL DEFAULT 0');
+      if (softDeleteType == SoftDeleteType.isDeleted) {
+        _createTableSQL.write(', isDeleted numeric NOT NULL DEFAULT 0');
+      } else {
+        _createTableSQL.write(', deletedAt datetime DEFAULT null');
+      }
     }
 
     final List<String> primaryKeys = <String>[];
@@ -4769,6 +4784,7 @@ abstract class CrudOperationsBase {
 abstract class TableBase extends CrudOperationsBase {
   /// Indicates whether an insertion was made or not
   bool isInsert = false;
+  SoftDeleteType? softDeleteType = SoftDeleteType.isDeleted;
   bool softDeleteActivated = false;
   BoolResult? saveResult;
   Map<String, dynamic> toMap(
