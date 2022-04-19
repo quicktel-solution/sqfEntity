@@ -288,18 +288,23 @@ class SqfEntityProvider extends SqfEntityModelBase {
     return retVal;
   }
 
-  Future<int?> update<T extends TableBase>(T obj) async {
+  Future<int?> update<T extends TableBase>(T obj, [bool useHook = true]) async {
     try {
+      print('updating');
+
       /// Leave it in this format for Throw to stay in this catch
       final res = await updateOrThrow(obj);
 
-      if (_dbModel!.postSaveAction != null) {
-        final record = obj.toMap(forQuery: true);
-        await _dbModel!.postSaveAction!(_tableName!, record, 'UPDATE');
+      if (useHook) {
+        if (_dbModel!.postSaveAction != null) {
+          final record = obj.toMap(forQuery: true);
+          await _dbModel!.postSaveAction!(_tableName!, record, 'UPDATE');
+        }
       }
 
       return res;
     } catch (error, stackTrace) {
+      print('error while updating');
       obj.saveResult = BoolResult(
           success: false,
           errorMessage:
@@ -336,16 +341,23 @@ class SqfEntityProvider extends SqfEntityModelBase {
     }
   }
 
-  Future<int?> insert<T extends TableBase>(T obj, bool ignoreBatch) async {
+  Future<int?> insert<T extends TableBase>(T obj, bool ignoreBatch,
+      [bool useHook = true]) async {
     try {
+      print('inserting');
+
       /// Leave it in this format for Throw to stay in this catch
       final res = await insertOrThrow(obj, ignoreBatch);
-      if (_dbModel!.postSaveAction != null) {
-        final record = obj.toMap(forQuery: true);
-        await _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
+
+      if (useHook) {
+        if (_dbModel!.postSaveAction != null) {
+          final record = obj.toMap(forQuery: true);
+          await _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
+        }
       }
       return res;
     } catch (error, stackTrace) {
+      print('error while inserting');
       obj.saveResult = BoolResult(
           success: false,
           errorMessage:
