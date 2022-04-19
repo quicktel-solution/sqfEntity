@@ -267,7 +267,10 @@ class SqfEntityProvider extends SqfEntityModelBase {
             final primaryKey = params.whereString?.split('=?')[0];
             final primaryKeyValue = params.whereArguments?.first;
 
-            values.putIfAbsent(primaryKey!, () => primaryKeyValue);
+            values.putIfAbsent(primaryKey!.trim(), () => primaryKeyValue);
+            print(primaryKey);
+            print(params.whereString);
+            print(values);
 
             await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE');
           }
