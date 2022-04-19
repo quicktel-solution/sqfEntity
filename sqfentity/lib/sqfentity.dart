@@ -262,6 +262,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
     final result = BoolResult(success: false);
     if (openedBatch[_dbModel!.databaseName!] == null) {
       print(params.whereString);
+      print(params.whereArguments);
       try {
         if (_dbModel!.postSaveAction != null) {
           if (useHook) {
@@ -298,8 +299,6 @@ class SqfEntityProvider extends SqfEntityModelBase {
 
   Future<int?> update<T extends TableBase>(T obj, [bool useHook = true]) async {
     try {
-      print('updating');
-
       /// Leave it in this format for Throw to stay in this catch
       final res = await updateOrThrow(obj);
 
@@ -312,7 +311,6 @@ class SqfEntityProvider extends SqfEntityModelBase {
 
       return res;
     } catch (error, stackTrace) {
-      print('error while updating');
       obj.saveResult = BoolResult(
           success: false,
           errorMessage:
@@ -321,7 +319,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
           msg: '$_tableName -> Save failed. Error: ${error.toString()}',
           error: error,
           stackTrace: stackTrace));
-      print(obj.saveResult.toString());
+
       return null;
     }
   }
@@ -353,8 +351,6 @@ class SqfEntityProvider extends SqfEntityModelBase {
   Future<int?> insert<T extends TableBase>(T obj, bool ignoreBatch,
       [bool useHook = true]) async {
     try {
-      print('inserting');
-
       /// Leave it in this format for Throw to stay in this catch
       final res = await insertOrThrow(obj, ignoreBatch);
 
@@ -366,7 +362,6 @@ class SqfEntityProvider extends SqfEntityModelBase {
       }
       return res;
     } catch (error, stackTrace) {
-      print('error while inserting');
       obj.saveResult = BoolResult(
           success: false,
           errorMessage:
