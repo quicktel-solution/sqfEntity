@@ -261,11 +261,14 @@ class SqfEntityProvider extends SqfEntityModelBase {
       [bool useHook = true]) async {
     final result = BoolResult(success: false);
     if (openedBatch[_dbModel!.databaseName!] == null) {
-      print(params.whereString);
-      print(params.whereArguments);
       try {
         if (_dbModel!.postSaveAction != null) {
           if (useHook) {
+            final primaryKey = params.whereString?.split('=?')[0];
+            final primaryKeyValue = params.whereArguments?.first;
+
+            values.putIfAbsent(primaryKey!, () => primaryKeyValue);
+
             await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE');
           }
         }
