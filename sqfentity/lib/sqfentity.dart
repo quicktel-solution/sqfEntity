@@ -261,6 +261,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
       [bool useHook = true]) async {
     final result = BoolResult(success: false);
     if (openedBatch[_dbModel!.databaseName!] == null) {
+      print(params.whereString);
       try {
         if (_dbModel!.postSaveAction != null) {
           if (useHook) {
