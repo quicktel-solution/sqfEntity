@@ -257,10 +257,20 @@ class SqfEntityProvider extends SqfEntityModelBase {
   }
 
   Future<BoolResult> updateBatch(
-      QueryParams params, Map<String, dynamic> values) async {
+      QueryParams params, Map<String, dynamic> values,
+      [bool useHook = true]) async {
     final result = BoolResult(success: false);
     if (openedBatch[_dbModel!.databaseName!] == null) {
       try {
+        if (useHook) {
+          if (_dbModel!.postSaveAction != null) {
+            print(params.toString());
+            print(values);
+            // final record = obj.toMap(forQuery: true);
+            // await _dbModel!.postSaveAction!(_tableName!, record, 'UPDATE');
+          }
+        }
+
         final Database db = (await this.db)!;
         final updatedItems = await db.update(_tableName!, values,
             where: params.whereString, whereArgs: params.whereArguments);
