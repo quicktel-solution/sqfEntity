@@ -313,6 +313,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
           msg: '$_tableName -> Save failed. Error: ${error.toString()}',
           error: error,
           stackTrace: stackTrace));
+      print(obj.saveResult.toString());
       return null;
     }
   }
@@ -366,6 +367,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
           msg: '$_tableName -> Save failed. Error: ${error.toString()}',
           error: error,
           stackTrace: stackTrace));
+      print(obj.saveResult.toString());
       return null;
     }
   }
