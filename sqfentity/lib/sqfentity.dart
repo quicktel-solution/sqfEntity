@@ -262,12 +262,9 @@ class SqfEntityProvider extends SqfEntityModelBase {
     final result = BoolResult(success: false);
     if (openedBatch[_dbModel!.databaseName!] == null) {
       try {
-        if (useHook) {
-          if (_dbModel!.postSaveAction != null) {
-            print(params.toString());
-            print(values);
-            // final record = obj.toMap(forQuery: true);
-            // await _dbModel!.postSaveAction!(_tableName!, record, 'UPDATE');
+        if (_dbModel!.postSaveAction != null) {
+          if (useHook) {
+            await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE');
           }
         }
 
@@ -305,8 +302,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
       /// Leave it in this format for Throw to stay in this catch
       final res = await updateOrThrow(obj);
 
-      if (useHook) {
-        if (_dbModel!.postSaveAction != null) {
+      if (_dbModel!.postSaveAction != null) {
+        if (useHook) {
           final record = obj.toMap(forQuery: true);
           await _dbModel!.postSaveAction!(_tableName!, record, 'UPDATE');
         }
@@ -360,8 +357,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
       /// Leave it in this format for Throw to stay in this catch
       final res = await insertOrThrow(obj, ignoreBatch);
 
-      if (useHook) {
-        if (_dbModel!.postSaveAction != null) {
+      if (_dbModel!.postSaveAction != null) {
+        if (useHook) {
           final record = obj.toMap(forQuery: true);
           await _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
         }
