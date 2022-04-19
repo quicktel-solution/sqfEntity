@@ -268,9 +268,6 @@ class SqfEntityProvider extends SqfEntityModelBase {
             final primaryKeyValue = params.whereArguments?.first;
 
             values.putIfAbsent(primaryKey!.trim(), () => primaryKeyValue);
-            print(primaryKey);
-            print(params.whereString);
-            print(values);
 
             await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE');
           }
@@ -376,7 +373,6 @@ class SqfEntityProvider extends SqfEntityModelBase {
           msg: '$_tableName -> Save failed. Error: ${error.toString()}',
           error: error,
           stackTrace: stackTrace));
-      print(obj.saveResult.toString());
       return null;
     }
   }
