@@ -262,23 +262,21 @@ class SqfEntityProvider extends SqfEntityModelBase {
     final result = BoolResult(success: false);
     if (openedBatch[_dbModel!.databaseName!] == null) {
       try {
-        if (_dbModel!.postSaveAction != null) {
-          if (useHook) {
-            final primaryKey = params.whereString?.split('=?')[0];
-            final primaryKeyValue = params.whereArguments?.first;
-
-            values.putIfAbsent(primaryKey!.trim(), () => primaryKeyValue);
-
-            await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE');
-          }
-        }
-
         final Database db = (await this.db)!;
         final updatedItems = await db.update(_tableName!, values,
             where: params.whereString, whereArgs: params.whereArguments);
         result
           ..success = true
           ..successMessage = '$updatedItems items updated';
+
+        if (_dbModel!.postSaveAction != null && useHook) {
+          final primaryKey = params.whereString?.split('=?')[0];
+          final primaryKeyValue = params.whereArguments?.first;
+
+          values.putIfAbsent(primaryKey!.trim(), () => primaryKeyValue);
+
+          await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE');
+        }
       } catch (e) {
         result.errorMessage = e.toString();
       }
@@ -305,11 +303,9 @@ class SqfEntityProvider extends SqfEntityModelBase {
       /// Leave it in this format for Throw to stay in this catch
       final res = await updateOrThrow(obj);
 
-      if (_dbModel!.postSaveAction != null) {
-        if (useHook) {
-          final record = obj.toMap(forQuery: true);
-          await _dbModel!.postSaveAction!(_tableName!, record, 'UPDATE');
-        }
+      if (_dbModel!.postSaveAction != null && useHook) {
+        final record = obj.toMap(forQuery: true);
+        await _dbModel!.postSaveAction!(_tableName!, record, 'UPDATE');
       }
 
       return res;
@@ -357,11 +353,9 @@ class SqfEntityProvider extends SqfEntityModelBase {
       /// Leave it in this format for Throw to stay in this catch
       final res = await insertOrThrow(obj, ignoreBatch);
 
-      if (_dbModel!.postSaveAction != null) {
-        if (useHook) {
-          final record = obj.toMap(forQuery: true);
-          await _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
-        }
+      if (_dbModel!.postSaveAction != null && useHook) {
+        final record = obj.toMap(forQuery: true);
+        await _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
       }
       return res;
     } catch (error, stackTrace) {
