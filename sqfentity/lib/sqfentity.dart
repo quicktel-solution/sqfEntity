@@ -257,7 +257,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
   }
 
   Future<BoolResult> updateBatch(
-      QueryParams params, Map<String, dynamic> values) async {
+      QueryParams params, Map<String, dynamic> values,
+      [bool useHook = true]) async {
     final result = BoolResult(success: false);
     if (openedBatch[_dbModel!.databaseName!] == null) {
       try {
@@ -267,6 +268,15 @@ class SqfEntityProvider extends SqfEntityModelBase {
         result
           ..success = true
           ..successMessage = '$updatedItems items updated';
+
+        if (_dbModel!.postSaveAction != null && useHook) {
+          final primaryKey = params.whereString?.split('=?')[0];
+          final primaryKeyValue = params.whereArguments?.first;
+
+          values.putIfAbsent(primaryKey!.trim(), () => primaryKeyValue);
+
+          await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE');
+        }
       } catch (e) {
         result.errorMessage = e.toString();
       }
@@ -288,14 +298,14 @@ class SqfEntityProvider extends SqfEntityModelBase {
     return retVal;
   }
 
-  Future<int?> update<T extends TableBase>(T obj) async {
+  Future<int?> update<T extends TableBase>(T obj, [bool useHook = true]) async {
     try {
       /// Leave it in this format for Throw to stay in this catch
       final res = await updateOrThrow(obj);
 
-      if (_dbModel!.postSaveAction != null) {
+      if (_dbModel!.postSaveAction != null && useHook) {
         final record = obj.toMap(forQuery: true);
-        await _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
+        await _dbModel!.postSaveAction!(_tableName!, record, 'UPDATE');
       }
 
       return res;
@@ -308,6 +318,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
           msg: '$_tableName -> Save failed. Error: ${error.toString()}',
           error: error,
           stackTrace: stackTrace));
+
       return null;
     }
   }
@@ -336,11 +347,13 @@ class SqfEntityProvider extends SqfEntityModelBase {
     }
   }
 
-  Future<int?> insert<T extends TableBase>(T obj, bool ignoreBatch) async {
+  Future<int?> insert<T extends TableBase>(T obj, bool ignoreBatch,
+      [bool useHook = true]) async {
     try {
       /// Leave it in this format for Throw to stay in this catch
       final res = await insertOrThrow(obj, ignoreBatch);
-      if (_dbModel!.postSaveAction != null) {
+
+      if (_dbModel!.postSaveAction != null && useHook) {
         final record = obj.toMap(forQuery: true);
         await _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
       }
@@ -397,7 +410,9 @@ class SqfEntityProvider extends SqfEntityModelBase {
             record[keys[i]] = params[i];
           }
 
-          _dbModel!.postSaveAction!(_tableName!, record, 'INSERT');
+          final action = pSql.contains('OR REPLACE') ? 'UPSERT' : 'INSERT';
+
+          await _dbModel!.postSaveAction!(_tableName!, record, action);
         }
       } else {
         openedBatch[_dbModel!.databaseName!]!.rawInsert(pSql, params);
