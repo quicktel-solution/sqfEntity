@@ -407,7 +407,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
           final record = {};
 
           for (int i = 0; i < params!.length; i++) {
-            record[keys[i]] = params[i];
+            record[keys[i].trim()] = params[i];
           }
 
           final action = pSql.contains('OR REPLACE') ? 'UPSERT' : 'INSERT';
