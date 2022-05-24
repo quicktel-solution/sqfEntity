@@ -284,6 +284,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
         }
       } catch (e) {
         result.errorMessage = e.toString();
+        rethrow;
       }
     } else {
       openedBatch[_dbModel!.databaseName!]!.update(_tableName!, values,

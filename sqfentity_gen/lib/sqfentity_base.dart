@@ -1720,6 +1720,7 @@ class SqfEntityObjectBuilder {
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'isSaved = true;' : ''}
       } catch (e){
         result.errorMessage = e.toString();
+        rethrow;
       }
       $_toOnetoOneSaveCode
       saveResult = result;
@@ -1746,6 +1747,7 @@ class SqfEntityObjectBuilder {
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'isSaved = true;' : ''}
       } catch (e){
         result.errorMessage = e.toString();
+        rethrow;
       }
       $_toOnetoOneSaveAsCode
       return result;
