@@ -396,20 +396,26 @@ class SqfEntityProvider extends SqfEntityModelBase {
     int result = 0;
     try {
       if (openedBatch[_dbModel!.databaseName!] == null || ignoreBatch) {
+        final openBracket = pSql.split('(')[1];
+        final closeBracket = openBracket.split(')')[0];
+        final keys = closeBracket.split(',');
+        final record = {};
+        for (int i = 0; i < params!.length; i++) {
+          record[keys[i].trim()] = params[i];
+        }
+
+        if (_dbModel!.preSaveAction != null) {
+          final preObj = await _dbModel!.preSaveAction!(_tableName!, record as TableBase);
+          final decodedObj = json.decode(json.encode(preObj));
+          for (int i = 0; i < params.length; i++) {
+            params[i] = decodedObj[keys[i].trim()];
+          }
+        }
+
         final Database db = (await this.db)!;
         result = await db.rawInsert(pSql, params);
+
         if (_dbModel!.postSaveAction != null) {
-          final openBracket = pSql.split('(')[1];
-          final closeBracket = openBracket.split(')')[0];
-
-          final keys = closeBracket.split(',');
-
-          final record = {};
-
-          for (int i = 0; i < params!.length; i++) {
-            record[keys[i].trim()] = params[i];
-          }
-
           final action = pSql.contains('OR REPLACE') ? 'UPSERT' : 'INSERT';
 
           await _dbModel!.postSaveAction!(_tableName!, record, action);
