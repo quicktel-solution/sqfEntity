@@ -263,6 +263,15 @@ class SqfEntityProvider extends SqfEntityModelBase {
     if (openedBatch[_dbModel!.databaseName!] == null) {
       try {
         final Database db = (await this.db)!;
+
+        final primaryKey = params.whereString?.split('=?')[0];
+        final primaryKeyValue = params.whereArguments?.first;
+        
+        if (_dbModel!.preSaveAction != null && useHook) {
+          // values.putIfAbsent(primaryKey!.trim(), () => primaryKeyValue);
+          values = await _dbModel!.preSaveAction!(_tableName!, values);
+        }
+
         final updatedItems = await db.update(_tableName!, values,
             where: params.whereString, whereArgs: params.whereArguments);
         result
@@ -270,11 +279,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
           ..successMessage = '$updatedItems items updated';
 
         if (_dbModel!.postSaveAction != null && useHook) {
-          final primaryKey = params.whereString?.split('=?')[0];
-          final primaryKeyValue = params.whereArguments?.first;
-
           values.putIfAbsent(primaryKey!.trim(), () => primaryKeyValue);
-
           await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE');
         }
       } catch (e) {

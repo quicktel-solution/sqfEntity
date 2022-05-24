@@ -324,7 +324,7 @@ class SqfEntityFieldRelationship implements SqfEntityField {
   final String? formLabelText;
 }
 
-typedef PreSaveAction = Future<TableBase> Function(String tableName, TableBase);
+typedef PreSaveAction = Future<dynamic> Function(String tableName, dynamic);
 
 typedef PostSaveAction = Future<void> Function(
     String tableName, dynamic, String action);
