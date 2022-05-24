@@ -264,9 +264,17 @@ class SqfEntityProvider extends SqfEntityModelBase {
       try {
         final Database db = (await this.db)!;
 
-        final primaryKey = params.whereString?.split('=?')[0];
-        final primaryKeyValue = params.whereArguments?.first;
-        
+        String primaryKey = params.whereString?.split('=?')[0].trim() ?? '';
+        String primaryKeyValue = '';
+
+        if (primaryKey.contains("=")) {
+          final List<String> keys = primaryKey.replaceAll(RegExp(r"\(|\'|\)| "), '').split('=');
+          primaryKey = keys[0];
+          primaryKeyValue = keys[1];
+        } else {
+          primaryKeyValue = params.whereArguments?.first;
+        }
+
         if (_dbModel!.preSaveAction != null && useHook) {
           // values.putIfAbsent(primaryKey!.trim(), () => primaryKeyValue);
           values = await _dbModel!.preSaveAction!(_tableName!, values);
@@ -279,7 +287,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
           ..successMessage = '$updatedItems items updated';
 
         if (_dbModel!.postSaveAction != null && useHook) {
-          values.putIfAbsent(primaryKey!.trim(), () => primaryKeyValue);
+          values.putIfAbsent(primaryKey, () => primaryKeyValue);
           await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE');
         }
       } catch (e) {
@@ -411,7 +419,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
         }
 
         if (_dbModel!.preSaveAction != null) {
-          final preObj = await _dbModel!.preSaveAction!(_tableName!, record as TableBase);
+          final preObj = await _dbModel!.preSaveAction!(_tableName!, record);
           final decodedObj = json.decode(json.encode(preObj));
           for (int i = 0; i < params.length; i++) {
             params[i] = decodedObj[keys[i].trim()];
