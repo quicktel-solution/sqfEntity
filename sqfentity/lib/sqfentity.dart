@@ -268,7 +268,10 @@ class SqfEntityProvider extends SqfEntityModelBase {
         String primaryKeyValue = '';
 
         if (primaryKey.contains('=')) {
-          final List<String> keys = primaryKey.replaceAll(RegExp(r"\(|\'|\)| "), '').replaceAll('==', '=').split('=');
+          final List<String> keys = primaryKey
+              .replaceAll(RegExp(r"\(|\'|\)| "), '')
+              .replaceAll('==', '=')
+              .split('=');
           primaryKey = keys[0];
           primaryKeyValue = keys[1];
         } else {
@@ -276,7 +279,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
         }
 
         if (_dbModel!.preSaveAction != null && useHook) {
-          // values.putIfAbsent(primaryKey!.trim(), () => primaryKeyValue);
+          values.putIfAbsent(primaryKey.trim(), () => primaryKeyValue);
           values = await _dbModel!.preSaveAction!(_tableName!, values);
         }
 
