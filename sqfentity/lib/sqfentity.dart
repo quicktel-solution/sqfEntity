@@ -267,8 +267,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
         String primaryKey = params.whereString?.split('=?')[0].trim() ?? '';
         String primaryKeyValue = '';
 
-        if (primaryKey.contains("=")) {
-          final List<String> keys = primaryKey.replaceAll(RegExp(r"\(|\'|\)| "), '').split('=');
+        if (primaryKey.contains('=')) {
+          final List<String> keys = primaryKey.replaceAll(RegExp(r"\(|\'|\)| "), '').replaceAll('==', '=').split('=');
           primaryKey = keys[0];
           primaryKeyValue = keys[1];
         } else {
