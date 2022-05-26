@@ -327,7 +327,7 @@ class SqfEntityFieldRelationship implements SqfEntityField {
 typedef PreSaveAction = Future<dynamic> Function(String tableName, dynamic);
 
 typedef PostSaveAction = Future<void> Function(
-    String tableName, dynamic, String action, [QueryParams params]);
+    String tableName, dynamic, String action, [QueryParams? params]);
 
 /// Log events on failure of insert/update operation
 ///    Example:
@@ -1970,6 +1970,9 @@ class ${_table.modelName}Manager extends SqfEntityProvider {
   static const String _tableName = '${_table.tableName}';
   static const List<String> _primaryKeyList = ['${_table.primaryKeyNames.join('\',\'')}'];
   static const String _whereStr = '${__getByIdWhereStr(_table).toString()}';
+  
+  static String tableName = '${_table.tableName}';
+  static String primaryKeyName = '${_table.primaryKeyNames[0]}';
 }
 //endregion ${_table.modelName}Manager''';
 
