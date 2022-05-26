@@ -1971,8 +1971,8 @@ class ${_table.modelName}Manager extends SqfEntityProvider {
   static const List<String> _primaryKeyList = ['${_table.primaryKeyNames.join('\',\'')}'];
   static const String _whereStr = '${__getByIdWhereStr(_table).toString()}';
   
-  static String tableName = '${_table.tableName}';
-  static String primaryKeyName = '${_table.primaryKeyNames[0]}';
+  String tableName = '${_table.tableName}';
+  String primaryKeyName = '${_table.primaryKeyNames[0]}';
 }
 //endregion ${_table.modelName}Manager''';
 
