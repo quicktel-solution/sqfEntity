@@ -264,22 +264,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
       try {
         final Database db = (await this.db)!;
 
-        String primaryKey = params.whereString?.split('=?')[0].trim() ?? '';
-        String primaryKeyValue = '';
-
-        if (primaryKey.contains('=')) {
-          final List<String> keys = primaryKey
-              .replaceAll(RegExp(r"\(|\'|\)| "), '')
-              .replaceAll('==', '=')
-              .split('=');
-          primaryKey = keys[0];
-          primaryKeyValue = keys[1];
-        } else {
-          primaryKeyValue = params.whereArguments?.first;
-        }
-
         if (_dbModel!.preSaveAction != null && useHook) {
-          values.putIfAbsent(primaryKey.trim(), () => primaryKeyValue);
+          values = values.map((key, value) => MapEntry(key, value));
           values = await _dbModel!.preSaveAction!(_tableName!, values);
         }
 
@@ -290,8 +276,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
           ..successMessage = '$updatedItems items updated';
 
         if (_dbModel!.postSaveAction != null && useHook) {
-          values.putIfAbsent(primaryKey, () => primaryKeyValue);
-          await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE');
+          await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE', params);
         }
       } catch (e) {
         result.errorMessage = e.toString();
@@ -340,10 +325,11 @@ class SqfEntityProvider extends SqfEntityModelBase {
     }
   }
 
-  Future<int?> updateOrThrow<T extends TableBase>(T obj) async {
-    if (_dbModel!.preSaveAction != null) {
+  Future<int?> updateOrThrow<T extends TableBase>(T obj, [bool useHook = true]) async {
+    if (useHook && _dbModel!.preSaveAction != null) {
       obj = await _dbModel!.preSaveAction!(_tableName!, obj) as T;
     }
+
     final data = obj.toMap(forQuery: true);
     if (openedBatch[_dbModel!.databaseName] == null) {
       final Database? db = await this.db;
@@ -389,8 +375,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
   }
 
   Future<int?> insertOrThrow<T extends TableBase>(
-      T obj, bool ignoreBatch) async {
-    if (_dbModel!.preSaveAction != null) {
+      T obj, bool ignoreBatch, [bool useHook = true]) async {
+    if (useHook && _dbModel!.preSaveAction != null) {
       obj = await _dbModel!.preSaveAction!(_tableName!, obj) as T;
     }
     final Map<String, dynamic> data = obj.toMap(forQuery: true);
@@ -409,7 +395,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
   }
 
   Future<int?> rawInsert(
-      String pSql, List<dynamic>? params, bool ignoreBatch) async {
+      String pSql, List<dynamic>? params, bool ignoreBatch, [bool useHook = false]) async {
     int result = 0;
     try {
       if (openedBatch[_dbModel!.databaseName!] == null || ignoreBatch) {
@@ -421,18 +407,17 @@ class SqfEntityProvider extends SqfEntityModelBase {
           record[keys[i].trim()] = params[i];
         }
 
-        if (_dbModel!.preSaveAction != null) {
-          final preObj = await _dbModel!.preSaveAction!(_tableName!, record);
-          final decodedObj = json.decode(json.encode(preObj));
+        if (useHook && _dbModel!.preSaveAction != null) {
+          final values = await _dbModel!.preSaveAction!(_tableName!, record);
           for (int i = 0; i < params.length; i++) {
-            params[i] = decodedObj[keys[i].trim()];
+            params[i] = values[keys[i].trim()];
           }
         }
 
         final Database db = (await this.db)!;
         result = await db.rawInsert(pSql, params);
 
-        if (_dbModel!.postSaveAction != null) {
+        if (useHook && _dbModel!.postSaveAction != null) {
           final action = pSql.contains('OR REPLACE') ? 'UPSERT' : 'INSERT';
 
           await _dbModel!.postSaveAction!(_tableName!, record, action);

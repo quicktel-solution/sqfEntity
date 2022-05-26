@@ -327,7 +327,7 @@ class SqfEntityFieldRelationship implements SqfEntityField {
 typedef PreSaveAction = Future<dynamic> Function(String tableName, dynamic);
 
 typedef PostSaveAction = Future<void> Function(
-    String tableName, dynamic, String action);
+    String tableName, dynamic, String action, [QueryParams params]);
 
 /// Log events on failure of insert/update operation
 ///    Example:
@@ -884,6 +884,9 @@ class SqfEntityObjectBuilder {
       }
       return objList;
     }
+    Future<List<${_table.modelName}>> loadFromMapList(List<dynamic> data,{bool preload=false, List<String>? preloadFields, bool loadParents=false, List<String>? loadedFields, bool setDefaultValues=true}) async{
+      return ${_table.modelName}.fromMapList(data, preload: preload, preloadFields: preloadFields, loadParents: loadParents, setDefaultValues: setDefaultValues);
+    }
     static Future<List<${_table.modelName}>> fromMapList(List<dynamic> data,{bool preload=false, List<String>? preloadFields, bool loadParents=false, List<String>? loadedFields, bool setDefaultValues=true}) async{
       final List<${_table.modelName}> objList = <${_table.modelName}>[];
       loadedFields = loadedFields ?? [];
@@ -921,7 +924,11 @@ class SqfEntityObjectBuilder {
     }'''}
 
     ${_table.objectType == ObjectType.table ? '''
-    
+
+    ${_table.modelName}Manager getModelManager() {
+      return _mn${_table.modelName};
+    }
+
     $_saveMethod 
 
     $_saveAllMethod
@@ -929,10 +936,10 @@ class SqfEntityObjectBuilder {
     /// Updates if the record exists, otherwise adds a new row
     /// <returns>Returns ${_table.primaryKeyType == null || _table.primaryKeyType == PrimaryKeyType.text ? '1' : _table.primaryKeyNames[0]}
     ${_table.abstractModelName != null ? '@override' : '@override'}
-    Future<int?> upsert({bool ignoreBatch = true}) async {
+    Future<int?> upsert({bool ignoreBatch = true, bool useHook = true}) async {
        try {
          final result = await _mn${_table.modelName}.rawInsert( 
-          'INSERT OR REPLACE INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll('this.', '')})  VALUES ($_createConstructureArgsWithId)', [${_table.createListParameterForQueryWithId.replaceAll('this.', '')}], ignoreBatch); if( result! > 0) 
+          'INSERT OR REPLACE INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll('this.', '')})  VALUES ($_createConstructureArgsWithId)', [${_table.createListParameterForQueryWithId.replaceAll('this.', '')}], ignoreBatch, useHook); if( result! > 0) 
           {
           saveResult = BoolResult(success: true, successMessage: '${_table.modelName} ${_table.primaryKeyNames[0]}=\$${_table.primaryKeyNames[0]} updated successfully');
           } else {
@@ -1654,14 +1661,14 @@ class SqfEntityObjectBuilder {
     /// ignoreBatch = true as a default. Set ignoreBatch to false if you run more than one save() operation those are between batchStart and batchCommit
     /// <returns>Returns ${_table.primaryKeyNames[0]}
     @override
-    Future<int?> ${_hiddenMethod}save({bool ignoreBatch = true}) async {
+    Future<int?> ${_hiddenMethod}save({bool ignoreBatch = true, bool useHook = true}) async {
       if (${_table.primaryKeyNames[0]} == null || ${_table.primaryKeyNames[0]} == 0 ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '|| !isSaved!' : ''}) {
         ${seq.toString()}
-        ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '' : '${_table.primaryKeyNames[0]} ='} await _mn${_table.modelName}.insert(this, ignoreBatch);
+        ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '' : '${_table.primaryKeyNames[0]} ='} await _mn${_table.modelName}.insert(this, ignoreBatch, useHook);
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'if (saveResult!.success) {isSaved = true;}' : ''}
           }
       else {
-        await _mn${_table.modelName}.update(this);
+        await _mn${_table.modelName}.update(this, useHook);
          }
         $_toOnetoOneSaveCode
       return ${_table.primaryKeyNames[0]};
@@ -1672,16 +1679,16 @@ class SqfEntityObjectBuilder {
     /// ignoreBatch = true as a default. Set ignoreBatch to false if you run more than one save() operation those are between batchStart and batchCommit
     /// <returns>Returns ${_table.primaryKeyNames[0]}
     @override 
-    Future<int?> ${_hiddenMethod}saveOrThrow({bool ignoreBatch = true}) async {
+    Future<int?> ${_hiddenMethod}saveOrThrow({bool ignoreBatch = true, bool useHook = true}) async {
       if (${_table.primaryKeyNames[0]} == null || ${_table.primaryKeyNames[0]} == 0 ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '|| !isSaved!' : ''}) {
         ${seq.toString()}
-        ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '' : '${_table.primaryKeyNames[0]} ='} await _mn${_table.modelName}.insertOrThrow(this, ignoreBatch);
+        ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '' : '${_table.primaryKeyNames[0]} ='} await _mn${_table.modelName}.insertOrThrow(this, ignoreBatch, useHook);
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'if (saveResult != null && saveResult!.success) {isSaved = true;}' : ''}
         isInsert = true;
           }
       else {
         // ${_table.primaryKeyNames[0]}= await _upsert(); // removed in sqfentity_gen 1.3.0+6
-        await _mn${_table.modelName}.updateOrThrow(this);
+        await _mn${_table.modelName}.updateOrThrow(this, useHook);
          }
         $_toOnetoOneSaveCode
       return ${_table.primaryKeyNames[0]};
@@ -1711,11 +1718,11 @@ class SqfEntityObjectBuilder {
     /// Call the saveAs() method if you do not want to save it when there is another row with the same ${_table.primaryKeyNames[0]}
     /// <returns>Returns BoolResult
     @override
-    Future<BoolResult> ${_hiddenMethod}save({bool ignoreBatch = true}) async {
+    Future<BoolResult> ${_hiddenMethod}save({bool ignoreBatch = true, bool useHook = true}) async {
       final result = BoolResult(success: false);
       try {         
         await _mn${_table.modelName}.rawInsert( 
-       'INSERT ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '\${isSaved! ? \'OR REPLACE\':\'\'}' : 'OR REPLACE'} INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll("this.", "")})  VALUES ($_createConstructureArgsWithId)', toArgsWithIds(), ignoreBatch);
+       'INSERT ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '\${isSaved! ? \'OR REPLACE\':\'\'}' : 'OR REPLACE'} INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll("this.", "")})  VALUES ($_createConstructureArgsWithId)', toArgsWithIds(), ignoreBatch, useHook);
         result.success=true;
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'isSaved = true;' : ''}
       } catch (e){
@@ -1737,11 +1744,11 @@ class SqfEntityObjectBuilder {
     
     /// Returns a BoolResult
     @override
-    Future<BoolResult> ${_hiddenMethod}saveAs({bool ignoreBatch = true}) async {
+    Future<BoolResult> ${_hiddenMethod}saveAs({bool ignoreBatch = true, bool useHook = true}) async {
       final result = BoolResult(success: false);
       try {         
         await _mn${_table.modelName}.rawInsert(
-          'INSERT INTO ${_table.tableName} (${_table.createConstructure.replaceAll("this.", "")})  VALUES ($_createConstructureArgs)', [${_table.createConstructure.replaceAll("this.", "")}], ignoreBatch);
+          'INSERT INTO ${_table.tableName} (${_table.createConstructure.replaceAll("this.", "")})  VALUES ($_createConstructureArgs)', [${_table.createConstructure.replaceAll("this.", "")}], ignoreBatch, useHook);
       ${seq.toString()}              
         result.success=true;
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'isSaved = true;' : ''}
@@ -2226,12 +2233,12 @@ Future<BoolResult> delete([bool hardDelete=false]) async {
   /// update({'fieldName': Value})
   /// fieldName must be String. Value is dynamic, it can be any of the (int, bool, String.. )
   @override
-  Future<BoolResult> update(Map<String, dynamic> values) {
+  Future<BoolResult> update(Map<String, dynamic> values, [bool useHook = true]) {
     buildParameters();
     if (qparams.limit! > 0 || qparams.offset! > 0) {
       qparams.whereString = '${_table.primaryKeyNames[0]} IN (SELECT ${_table.primaryKeyNames[0]} from ${_table.tableName} \${qparams.whereString!.isNotEmpty ? 'WHERE \${qparams.whereString}': ''}\${qparams.limit!>0 ? ' LIMIT \${qparams.limit}':''}\${qparams.offset!>0 ? ' OFFSET \${qparams.offset}':''})';
     }
-     return _mn${_table.modelName}!.updateBatch(qparams, values);
+     return _mn${_table.modelName}!.updateBatch(qparams, values, useHook);
   }''' : ''}
   /// This method always returns [${_table.modelName}] Obj if exist, otherwise returns null 
   ${commentPreload.replaceAll('methodname', 'toSingle')}
