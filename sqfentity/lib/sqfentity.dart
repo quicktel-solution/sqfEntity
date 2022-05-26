@@ -354,7 +354,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
       [bool useHook = true]) async {
     try {
       /// Leave it in this format for Throw to stay in this catch
-      final res = await insertOrThrow(obj, ignoreBatch);
+      final res = await insertOrThrow(obj, ignoreBatch, useHook);
 
       if (_dbModel!.postSaveAction != null && useHook) {
         final record = obj.toMap(forQuery: true);
