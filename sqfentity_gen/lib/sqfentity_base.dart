@@ -324,10 +324,10 @@ class SqfEntityFieldRelationship implements SqfEntityField {
   final String? formLabelText;
 }
 
-typedef PreSaveAction = Future<dynamic> Function(String tableName, dynamic);
+typedef PreSaveAction = Future<dynamic> Function(String tableName, dynamic, String action, [String? batchId, QueryParams? params]);
 
 typedef PostSaveAction = Future<void> Function(
-    String tableName, dynamic, String action, [QueryParams? params]);
+    String tableName, dynamic, String action, [QueryParams? params, String? batchId]);
 
 /// Log events on failure of insert/update operation
 ///    Example:
@@ -929,6 +929,19 @@ class SqfEntityObjectBuilder {
       return _mn${_table.modelName};
     }
 
+    // Transactions
+    Future<String> _startBatch() async {
+      return _mn${_table.modelName}.startBatch();
+    }
+
+    Future<List<dynamic>?> _commitBatch(String batchId) async {
+      return _mn${_table.modelName}.commitBatch(batchId);
+    }
+
+    void _rollbackBatch(String batchId) {
+      _mn${_table.modelName}.rollbackBatch(batchId);
+    }
+
     $_saveMethod 
 
     $_saveAllMethod
@@ -936,20 +949,32 @@ class SqfEntityObjectBuilder {
     /// Updates if the record exists, otherwise adds a new row
     /// <returns>Returns ${_table.primaryKeyType == null || _table.primaryKeyType == PrimaryKeyType.text ? '1' : _table.primaryKeyNames[0]}
     ${_table.abstractModelName != null ? '@override' : '@override'}
-    Future<int?> upsert({bool ignoreBatch = true, bool useHook = true}) async {
+    Future<int?> upsert({bool ignoreBatch = true, bool useHook = true, String? batchId}) async {
+       bool commitNow = false;
+       if (batchId == null) {
+         batchId = await _startBatch();
+         commitNow = true;
+       }
        try {
          final result = await _mn${_table.modelName}.rawInsert( 
-          'INSERT OR REPLACE INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll('this.', '')})  VALUES ($_createConstructureArgsWithId)', [${_table.createListParameterForQueryWithId.replaceAll('this.', '')}], ignoreBatch, useHook); if( result! > 0) 
+          'INSERT OR REPLACE INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll('this.', '')})  VALUES ($_createConstructureArgsWithId)', [${_table.createListParameterForQueryWithId.replaceAll('this.', '')}], ignoreBatch, useHook, batchId);
+          
+          if( result! > 0) 
           {
           saveResult = BoolResult(success: true, successMessage: '${_table.modelName} ${_table.primaryKeyNames[0]}=\$${_table.primaryKeyNames[0]} updated successfully');
           } else {
         saveResult = BoolResult(
             success: false, errorMessage: '${_table.modelName} ${_table.primaryKeyNames[0]}=\$${_table.primaryKeyNames[0]} did not update');
+            throw '${_table.modelName} ${_table.primaryKeyNames[0]}=\$${_table.primaryKeyNames[0]} did not update';
          }
-          return ${_table.primaryKeyTypes[0] == 'String' ? '1' : '${_table.primaryKeyNames[0]}'};
+         if (commitNow) {
+            await _commitBatch(batchId);
+         }
+         return ${_table.primaryKeyTypes[0] == 'String' ? '1' : '${_table.primaryKeyNames[0]}'};
        } catch (e) {
-        saveResult = BoolResult(success: false,errorMessage: '${_table.modelName} Save failed. Error: \${e.toString()}');
-        return null;
+        _rollbackBatch(batchId);
+         saveResult = BoolResult(success: false,errorMessage: '${_table.modelName} Save failed. Error: \${e.toString()}');
+         rethrow;
       }
     }
 
@@ -1608,24 +1633,35 @@ class SqfEntityObjectBuilder {
   
     /// saveAll method saves the sent List<${_table.modelName}> as a bulk in one transaction 
     /// Returns a <List<BoolResult>>
-    static Future<List<dynamic>> saveAll(List<${_table.modelName}> ${toPluralName(_table._modelLowerCase)}) async {
+    static Future<List<dynamic>> saveAll(List<${_table.modelName}> ${toPluralName(_table._modelLowerCase)}, [String? batchId = null]) async {
       List<dynamic>? result = [];
       // If there is no open transaction, start one
-      final isStartedBatch = await ${_table.dbModel}().batchStart();
+       bool commitNow = false;
+       if (batchId == null) {
+         batchId = await ${_table.modelName}()._startBatch();
+         commitNow = true;
+       }
+
+       try {
           for(final obj in ${toPluralName(_table._modelLowerCase)})
           {
-             await obj.save(${_table.primaryKeyTypes[0].startsWith('int') && _table.primaryKeyNames.length == 1 ? 'ignoreBatch: false' : ''}); 
+             await obj.save(batchId: batchId${_table.primaryKeyTypes[0].startsWith('int') && _table.primaryKeyNames.length == 1 ? ', ignoreBatch: false' : ''}); 
           }
-    if (!isStartedBatch) {
-     result =await ${_table.dbModel}().batchCommit();
-    ${_table.primaryKeyType == PrimaryKeyType.integer_auto_incremental ? '''
-    for (int i = 0; i < ${toPluralName(_table._modelLowerCase)}.length; i++) {
-      if(${toPluralName(_table._modelLowerCase)}[i].${_table.primaryKeyNames[0]} == null) { 
-        ${toPluralName(_table._modelLowerCase)}[i].${_table.primaryKeyNames[0]} = result![i] as ${_table.primaryKeyTypes[0]}; 
+          if (commitNow) {
+            result = await ${_table.modelName}()._commitBatch(batchId);
+            ${_table.primaryKeyType == PrimaryKeyType.integer_auto_incremental ? '''
+            for (int i = 0; i < ${toPluralName(_table._modelLowerCase)}.length; i++) {
+              if(${toPluralName(_table._modelLowerCase)}[i].${_table.primaryKeyNames[0]} == null) { 
+                ${toPluralName(_table._modelLowerCase)}[i].${_table.primaryKeyNames[0]} = result![i] as ${_table.primaryKeyTypes[0]}; 
+                }
+            }
+          ''' : ''}
+          }
+        } catch (e) {
+          ${_table.modelName}()._rollbackBatch(batchId);
+          rethrow;
         }
-      }
-    ''' : ''}
-    }
+
     return result!;
       }''';
   }
@@ -1661,14 +1697,14 @@ class SqfEntityObjectBuilder {
     /// ignoreBatch = true as a default. Set ignoreBatch to false if you run more than one save() operation those are between batchStart and batchCommit
     /// <returns>Returns ${_table.primaryKeyNames[0]}
     @override
-    Future<int?> ${_hiddenMethod}save({bool ignoreBatch = true, bool useHook = true}) async {
+    Future<int?> ${_hiddenMethod}save({bool ignoreBatch = true, bool useHook = true, String? batchId}) async {
       if (${_table.primaryKeyNames[0]} == null || ${_table.primaryKeyNames[0]} == 0 ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '|| !isSaved!' : ''}) {
         ${seq.toString()}
-        ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '' : '${_table.primaryKeyNames[0]} ='} await _mn${_table.modelName}.insert(this, ignoreBatch, useHook);
+        ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '' : '${_table.primaryKeyNames[0]} ='} await _mn${_table.modelName}.insert(this, ignoreBatch, useHook, batchId);
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'if (saveResult!.success) {isSaved = true;}' : ''}
           }
       else {
-        await _mn${_table.modelName}.update(this, useHook);
+        await _mn${_table.modelName}.update(this, useHook, batchId);
          }
         $_toOnetoOneSaveCode
       return ${_table.primaryKeyNames[0]};
@@ -1718,14 +1754,23 @@ class SqfEntityObjectBuilder {
     /// Call the saveAs() method if you do not want to save it when there is another row with the same ${_table.primaryKeyNames[0]}
     /// <returns>Returns BoolResult
     @override
-    Future<BoolResult> ${_hiddenMethod}save({bool ignoreBatch = true, bool useHook = true}) async {
+    Future<BoolResult> ${_hiddenMethod}save({bool ignoreBatch = false, bool useHook = true, String? batchId}) async {
       final result = BoolResult(success: false);
+      bool commitNow = false;
+      if (batchId == null) {
+        batchId = await _startBatch();
+        commitNow = true;
+      }
       try {         
         await _mn${_table.modelName}.rawInsert( 
-       'INSERT ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '\${isSaved! ? \'OR REPLACE\':\'\'}' : 'OR REPLACE'} INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll("this.", "")})  VALUES ($_createConstructureArgsWithId)', toArgsWithIds(), ignoreBatch, useHook);
+       'INSERT ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? '\${isSaved! ? \'OR REPLACE\':\'\'}' : 'OR REPLACE'} INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll("this.", "")})  VALUES ($_createConstructureArgsWithId)', toArgsWithIds(), ignoreBatch, useHook, batchId);
+        if (commitNow) {
+          await _commitBatch(batchId);
+        }
         result.success=true;
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'isSaved = true;' : ''}
       } catch (e){
+        _rollbackBatch(batchId);
         result.errorMessage = e.toString();
         rethrow;
       }
@@ -2220,14 +2265,14 @@ ${_table.objectType == ObjectType.table ? '''
 /// 
 /// <returns>BoolResult res.success= true (Deleted), false (Could not be deleted)
 @override
-Future<BoolResult> delete([bool hardDelete=false]) async {
+Future<BoolResult> delete([bool hardDelete=false, bool ignoreBatch=false]) async {
   buildParameters();
   var r = BoolResult(success: false);
   $_deleteMethodList
     if(_softDeleteActivated && !hardDelete) {
       r = await _mn${_table.modelName}!.updateBatch(qparams,{'isDeleted':1}); }
   else {
-      r = await _mn${_table.modelName}!.delete(qparams); }
+      r = await _mn${_table.modelName}!.delete(qparams, ignoreBatch); }
   return r;    
 }
   $_recoverMethodList
@@ -2236,12 +2281,27 @@ Future<BoolResult> delete([bool hardDelete=false]) async {
   /// update({'fieldName': Value})
   /// fieldName must be String. Value is dynamic, it can be any of the (int, bool, String.. )
   @override
-  Future<BoolResult> update(Map<String, dynamic> values, [bool useHook = true]) {
+  Future<BoolResult> update(Map<String, dynamic> values, [bool useHook = true, String? batchId]) async {
     buildParameters();
+    
+    bool commitNow = false;
+    if (batchId == null) {
+      batchId = await _mn${_table.modelName}!.startBatch();
+      commitNow = true;
+    }
     if (qparams.limit! > 0 || qparams.offset! > 0) {
       qparams.whereString = '${_table.primaryKeyNames[0]} IN (SELECT ${_table.primaryKeyNames[0]} from ${_table.tableName} \${qparams.whereString!.isNotEmpty ? 'WHERE \${qparams.whereString}': ''}\${qparams.limit!>0 ? ' LIMIT \${qparams.limit}':''}\${qparams.offset!>0 ? ' OFFSET \${qparams.offset}':''})';
     }
-     return _mn${_table.modelName}!.updateBatch(qparams, values, useHook);
+    try {
+      await _mn${_table.modelName}!.updateBatch(qparams, values, useHook, batchId);
+      if (commitNow) {
+        await _mn${_table.modelName}!.commitBatch(batchId);
+      }
+      return BoolResult(success: true);
+    } catch (e) {
+      _mn${_table.modelName}!.rollbackBatch(batchId);
+      rethrow;
+    }
   }''' : ''}
   /// This method always returns [${_table.modelName}] Obj if exist, otherwise returns null 
   ${commentPreload.replaceAll('methodname', 'toSingle')}
