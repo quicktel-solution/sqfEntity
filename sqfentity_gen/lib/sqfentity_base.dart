@@ -3753,6 +3753,9 @@ class SqfEntityTableBase {
         case PrimaryKeyType.text:
           _createTableSQL.write('text UNIQUE');
           break;
+        case PrimaryKeyType.integer_auto_incremental:
+          _createTableSQL.write('integer primary key autoincrement');
+          break;
         default:
           _createTableSQL.write('integer primary key');
       }
