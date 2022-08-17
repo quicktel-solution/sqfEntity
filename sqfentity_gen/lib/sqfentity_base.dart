@@ -972,7 +972,9 @@ class SqfEntityObjectBuilder {
          }
          return ${_table.primaryKeyTypes[0] == 'String' ? '1' : '${_table.primaryKeyNames[0]}'};
        } catch (e) {
-        _rollbackBatch(batchId);
+        if (commitNow) {
+          _rollbackBatch(batchId);
+        }
          saveResult = BoolResult(success: false,errorMessage: '${_table.modelName} Save failed. Error: \${e.toString()}');
          rethrow;
       }
@@ -1658,7 +1660,9 @@ class SqfEntityObjectBuilder {
           ''' : ''}
           }
         } catch (e) {
-          ${_table.modelName}()._rollbackBatch(batchId);
+          if (commitNow) {
+            ${_table.modelName}()._rollbackBatch(batchId);
+          }
           rethrow;
         }
 
@@ -1770,7 +1774,9 @@ class SqfEntityObjectBuilder {
         result.success=true;
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'isSaved = true;' : ''}
       } catch (e){
-        _rollbackBatch(batchId);
+        if (commitNow) {
+          _rollbackBatch(batchId);
+        }
         result.errorMessage = e.toString();
         rethrow;
       }
@@ -2299,7 +2305,9 @@ Future<BoolResult> delete([bool hardDelete=false, bool ignoreBatch=false]) async
       }
       return BoolResult(success: true);
     } catch (e) {
-      _mn${_table.modelName}!.rollbackBatch(batchId);
+      if (commitNow) {
+        _mn${_table.modelName}!.rollbackBatch(batchId);
+      }
       rethrow;
     }
   }''' : ''}
