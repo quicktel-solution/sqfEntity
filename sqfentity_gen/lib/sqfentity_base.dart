@@ -1571,7 +1571,7 @@ class SqfEntityObjectBuilder {
       if (!_softDeleteActivated || hardDelete${_table.useSoftDeleting != null && _table.useSoftDeleting! ? ' || isDeleted!' : ''}) {
       return _mn${_table.modelName}.delete(QueryParams(whereString: '$_getByIdWhereStr', whereArguments: [$_getByIdParameters]));}
       else {
-      return _mn${_table.modelName}.updateBatch(QueryParams(whereString: '$_getByIdWhereStr', whereArguments: [$_getByIdParameters]), {'isDeleted': 1});}''';
+      return _mn${_table.modelName}.updateBatch(QueryParams(whereString: '$_getByIdWhereStr', whereArguments: [$_getByIdParameters]), {'deletedAt':DateTime.now().toUtc().toString()});}''';
   }
 
   String __recoverMethodSingle() {
@@ -2275,10 +2275,13 @@ Future<BoolResult> delete([bool hardDelete=false, bool ignoreBatch=false]) async
   buildParameters();
   var r = BoolResult(success: false);
   $_deleteMethodList
-    if(_softDeleteActivated && !hardDelete) {
-      r = await _mn${_table.modelName}!.updateBatch(qparams,{'isDeleted':1}); }
-  else {
-      r = await _mn${_table.modelName}!.delete(qparams, ignoreBatch); }
+      if(_softDeleteActivated && !hardDelete) {
+        r = await _mn${_table.modelName}!.updateBatch(qparams,{'isDeleted':1}); 
+      } else if (!hardDelete) {
+        r = await _mn${_table.modelName}!.updateBatch(qparams,{'deletedAt':DateTime.now().toUtc().toString()}); 
+      } else {
+        r = await _mn${_table.modelName}!.delete(qparams, ignoreBatch); 
+      }
   return r;    
 }
   $_recoverMethodList
@@ -2287,7 +2290,7 @@ Future<BoolResult> delete([bool hardDelete=false, bool ignoreBatch=false]) async
   /// update({'fieldName': Value})
   /// fieldName must be String. Value is dynamic, it can be any of the (int, bool, String.. )
   @override
-  Future<BoolResult> update(Map<String, dynamic> values, [bool useHook = true, String? batchId]) async {
+  Future<BoolResult> update(Map<String, dynamic> values, {bool useHook = true, String? batchId}) async {
     buildParameters();
     
     bool commitNow = false;
