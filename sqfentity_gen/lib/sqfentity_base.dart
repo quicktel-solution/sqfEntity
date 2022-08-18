@@ -1711,7 +1711,7 @@ class SqfEntityObjectBuilder {
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'if (saveResult!.success) {isSaved = true;}' : ''}
           }
       else {
-        await _mn${_table.modelName}.update(this, useHook: useHook, batchId: batchId);
+        await _mn${_table.modelName}.update(this, useHook, batchId);
          }
         $_toOnetoOneSaveCode
       return ${_table.primaryKeyNames[0]};
