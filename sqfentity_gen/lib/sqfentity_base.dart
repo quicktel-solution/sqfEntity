@@ -324,10 +324,13 @@ class SqfEntityFieldRelationship implements SqfEntityField {
   final String? formLabelText;
 }
 
-typedef PreSaveAction = Future<dynamic> Function(String tableName, dynamic, String action, [String? batchId, QueryParams? params]);
+typedef PreSaveAction = Future<dynamic> Function(
+    String tableName, dynamic, String action,
+    [String? batchId, QueryParams? params]);
 
 typedef PostSaveAction = Future<void> Function(
-    String tableName, dynamic, String action, [QueryParams? params, String? batchId]);
+    String tableName, dynamic, String action,
+    [QueryParams? params, String? batchId]);
 
 /// Log events on failure of insert/update operation
 ///    Example:
@@ -1708,7 +1711,7 @@ class SqfEntityObjectBuilder {
         ${_table.primaryKeyType != PrimaryKeyType.integer_auto_incremental || _table.primaryKeyName == null || _table.primaryKeyName!.isEmpty ? 'if (saveResult!.success) {isSaved = true;}' : ''}
           }
       else {
-        await _mn${_table.modelName}.update(this, useHook, batchId);
+        await _mn${_table.modelName}.update(this, useHook: useHook, batchId: batchId);
          }
         $_toOnetoOneSaveCode
       return ${_table.primaryKeyNames[0]};
@@ -4699,6 +4702,7 @@ enum PrimaryKeyType { integer_auto_incremental, text, integer_unique }
 ///
 /// Visit here to see example view VIEW_tracks: https://github.com/hhtokpinar/sqfEntity/blob/master/example/lib/model/chinook.dart#L184
 enum ObjectType { table, view }
+
 //enum DefaultValues { date_now, datetime_now }
 enum DbType {
   integer, // 0
