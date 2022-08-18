@@ -268,14 +268,14 @@ class SqfEntityProvider extends SqfEntityModelBase {
 
     final Batch? batch = _getBatch(batchId, false);
 
+    if (_dbModel!.preSaveAction != null && useHook) {
+      values = values.map((key, value) => MapEntry(key, value));
+      values = await _dbModel!.preSaveAction!(_tableName!, values, 'UPDATE', batchId, params) as Map<String, dynamic>;
+    }
+
     if (batch == null) {
       try {
         final Database db = (await this.db)!;
-
-        if (_dbModel!.preSaveAction != null && useHook) {
-          values = values.map((key, value) => MapEntry(key, value));
-          values = await _dbModel!.preSaveAction!(_tableName!, values, 'UPDATE', batchId, params) as Map<String, dynamic>;
-        }
 
         final updatedItems = await db.update(_tableName!, values,
             where: params.whereString, whereArgs: params.whereArguments);
