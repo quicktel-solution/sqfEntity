@@ -231,7 +231,7 @@ class ArtistAddState extends State {
   }
 
   void save() async {
-    artist..Name = txtName.text;
+    artist.Name = txtName.text;
     await artist.save();
     if (artist.saveResult!.success) {
       Navigator.pop(context, true);
@@ -712,7 +712,7 @@ class EmployeeAddState extends State {
                     employee.BirthDate ??
                     DateTime.now()),
             controller: txtTimeForBirthDate,
-            decoration: InputDecoration(labelText: ''),
+            decoration: InputDecoration(labelText: 'time'),
           ))
     ]);
   }
@@ -767,7 +767,7 @@ class EmployeeAddState extends State {
                     employee.HireDate ??
                     DateTime.now()),
             controller: txtTimeForHireDate,
-            decoration: InputDecoration(labelText: ''),
+            decoration: InputDecoration(labelText: 'time'),
           ))
     ]);
   }
@@ -992,7 +992,7 @@ class GenreAddState extends State {
   }
 
   void save() async {
-    genre..Name = txtName.text;
+    genre.Name = txtName.text;
     await genre.save();
     if (genre.saveResult!.success) {
       Navigator.pop(context, true);
@@ -1167,7 +1167,7 @@ class InvoiceAddState extends State {
                     invoice.InvoiceDate ??
                     DateTime.now()),
             controller: txtTimeForInvoiceDate,
-            decoration: InputDecoration(labelText: ''),
+            decoration: InputDecoration(labelText: 'time'),
           ))
     ]);
   }
@@ -1591,7 +1591,7 @@ class MediaTypeAddState extends State {
   }
 
   void save() async {
-    mediatype..Name = txtName.text;
+    mediatype.Name = txtName.text;
     await mediatype.save();
     if (mediatype.saveResult!.success) {
       Navigator.pop(context, true);
@@ -1686,7 +1686,7 @@ class PlaylistAddState extends State {
   }
 
   void save() async {
-    playlist..Name = txtName.text;
+    playlist.Name = txtName.text;
     await playlist.save();
     if (playlist.saveResult!.success) {
       Navigator.pop(context, true);

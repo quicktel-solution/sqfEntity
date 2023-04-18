@@ -6,7 +6,7 @@ publish_to: 'none'
 version: 2.3.0+4
 
 environment:
-  sdk: ">=2.12.2 <3.0.0"
+  sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
   flutter:
@@ -26,6 +26,6 @@ dependencies:
   meta: ^1.7.0
   
 
-# dependency_overrides:
-#  sqfentity_gen:
-#    path: ../sqfentity_gen
+dependency_overrides:
+ sqfentity_gen:
+   path: ../sqfentity_gen
