@@ -11,4 +11,4 @@ dependencies:
   source_gen: ^1.2.2
   meta: ^1.7.0
   analyzer: ^4.1.0
-  intl: ^0.17.0
+  intl: ^0.18.0
