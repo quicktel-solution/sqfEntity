@@ -641,7 +641,8 @@ class Product extends TableBase {
 
   /// saveAll method saves the sent List<Product> as a bulk in one transaction
   /// Returns a <List<BoolResult>>
-  static Future<List<dynamic>> saveAll(List<Product> products) async {
+  static Future<List<dynamic>> saveAll(List<Product> products,
+      {bool? exclusive, bool? noResult, bool? continueOnError}) async {
     List<dynamic>? result = [];
     // If there is no open transaction, start one
     final isStartedBatch = await MyDbModel().batchStart();
@@ -649,7 +650,10 @@ class Product extends TableBase {
       await obj.save(ignoreBatch: false);
     }
     if (!isStartedBatch) {
-      result = await MyDbModel().batchCommit();
+      result = await MyDbModel().batchCommit(
+          exclusive: exclusive,
+          noResult: noResult,
+          continueOnError: continueOnError);
       for (int i = 0; i < products.length; i++) {
         if (products[i].id == null) {
           products[i].id = result![i] as int;
@@ -702,10 +706,14 @@ class Product extends TableBase {
   /// upsertAll() method is faster then saveAll() method. upsertAll() should be used when you are sure that the primary key is greater than zero
   /// Returns a BoolCommitResult
   @override
-  Future<BoolCommitResult> upsertAll(List<Product> products) async {
+  Future<BoolCommitResult> upsertAll(List<Product> products,
+      {bool? exclusive, bool? noResult, bool? continueOnError}) async {
     final results = await _mnProduct.rawInsertAll(
         'INSERT OR REPLACE INTO product (id, name, description, price, isActive, categoryId, rownum, imageUrl, datetime, date, dateCreated,isDeleted)  VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-        products);
+        products,
+        exclusive: exclusive,
+        noResult: noResult,
+        continueOnError: continueOnError);
     return results;
   }
 
@@ -1204,7 +1212,7 @@ class ProductFilterBuilder extends ConjunctionBase {
     final int count = data.length;
     final List<DropdownMenuItem<Product>> items = []..add(DropdownMenuItem(
         value: Product(),
-        child: Text('Select Product'),
+        child: Text('-'),
       ));
     for (int i = 0; i < count; i++) {
       items.add(
@@ -1233,7 +1241,7 @@ class ProductFilterBuilder extends ConjunctionBase {
     final int count = data.length;
     final List<DropdownMenuItem<int>> items = []..add(DropdownMenuItem(
         value: 0,
-        child: Text('Select Product'),
+        child: Text('-'),
       ));
     for (int i = 0; i < count; i++) {
       items.add(
@@ -1715,7 +1723,8 @@ class Category extends TableBase {
 
   /// saveAll method saves the sent List<Category> as a bulk in one transaction
   /// Returns a <List<BoolResult>>
-  static Future<List<dynamic>> saveAll(List<Category> categories) async {
+  static Future<List<dynamic>> saveAll(List<Category> categories,
+      {bool? exclusive, bool? noResult, bool? continueOnError}) async {
     List<dynamic>? result = [];
     // If there is no open transaction, start one
     final isStartedBatch = await MyDbModel().batchStart();
@@ -1723,7 +1732,10 @@ class Category extends TableBase {
       await obj.save(ignoreBatch: false);
     }
     if (!isStartedBatch) {
-      result = await MyDbModel().batchCommit();
+      result = await MyDbModel().batchCommit(
+          exclusive: exclusive,
+          noResult: noResult,
+          continueOnError: continueOnError);
       for (int i = 0; i < categories.length; i++) {
         if (categories[i].id == null) {
           categories[i].id = result![i] as int;
@@ -1768,10 +1780,14 @@ class Category extends TableBase {
   /// upsertAll() method is faster then saveAll() method. upsertAll() should be used when you are sure that the primary key is greater than zero
   /// Returns a BoolCommitResult
   @override
-  Future<BoolCommitResult> upsertAll(List<Category> categories) async {
+  Future<BoolCommitResult> upsertAll(List<Category> categories,
+      {bool? exclusive, bool? noResult, bool? continueOnError}) async {
     final results = await _mnCategory.rawInsertAll(
         'INSERT OR REPLACE INTO category (id, name, isActive, dateCreated)  VALUES (?,?,?,?)',
-        categories);
+        categories,
+        exclusive: exclusive,
+        noResult: noResult,
+        continueOnError: continueOnError);
     return results;
   }
 
@@ -2235,7 +2251,7 @@ class CategoryFilterBuilder extends ConjunctionBase {
     final int count = data.length;
     final List<DropdownMenuItem<Category>> items = []..add(DropdownMenuItem(
         value: Category(),
-        child: Text('Select Category'),
+        child: Text('-'),
       ));
     for (int i = 0; i < count; i++) {
       items.add(
@@ -2264,7 +2280,7 @@ class CategoryFilterBuilder extends ConjunctionBase {
     final int count = data.length;
     final List<DropdownMenuItem<int>> items = []..add(DropdownMenuItem(
         value: 0,
-        child: Text('Select Category'),
+        child: Text('-'),
       ));
     for (int i = 0; i < count; i++) {
       items.add(
@@ -2667,7 +2683,8 @@ class Todo extends TableBase {
 
   /// saveAll method saves the sent List<Todo> as a bulk in one transaction
   /// Returns a <List<BoolResult>>
-  static Future<List<dynamic>> saveAll(List<Todo> todos) async {
+  static Future<List<dynamic>> saveAll(List<Todo> todos,
+      {bool? exclusive, bool? noResult, bool? continueOnError}) async {
     List<dynamic>? result = [];
     // If there is no open transaction, start one
     final isStartedBatch = await MyDbModel().batchStart();
@@ -2675,7 +2692,10 @@ class Todo extends TableBase {
       await obj.save(ignoreBatch: false);
     }
     if (!isStartedBatch) {
-      result = await MyDbModel().batchCommit();
+      result = await MyDbModel().batchCommit(
+          exclusive: exclusive,
+          noResult: noResult,
+          continueOnError: continueOnError);
     }
     return result!;
   }
@@ -2715,10 +2735,14 @@ class Todo extends TableBase {
   /// upsertAll() method is faster then saveAll() method. upsertAll() should be used when you are sure that the primary key is greater than zero
   /// Returns a BoolCommitResult
   @override
-  Future<BoolCommitResult> upsertAll(List<Todo> todos) async {
+  Future<BoolCommitResult> upsertAll(List<Todo> todos,
+      {bool? exclusive, bool? noResult, bool? continueOnError}) async {
     final results = await _mnTodo.rawInsertAll(
         'INSERT OR REPLACE INTO todos (id, userId, title, completed, dateCreated)  VALUES (?,?,?,?,?)',
-        todos);
+        todos,
+        exclusive: exclusive,
+        noResult: noResult,
+        continueOnError: continueOnError);
     return results;
   }
 
@@ -3152,7 +3176,7 @@ class TodoFilterBuilder extends ConjunctionBase {
     final int count = data.length;
     final List<DropdownMenuItem<Todo>> items = []..add(DropdownMenuItem(
         value: Todo(),
-        child: Text('Select Todo'),
+        child: Text('-'),
       ));
     for (int i = 0; i < count; i++) {
       items.add(
@@ -3181,7 +3205,7 @@ class TodoFilterBuilder extends ConjunctionBase {
     final int count = data.length;
     final List<DropdownMenuItem<int>> items = []..add(DropdownMenuItem(
         value: 0,
-        child: Text('Select Todo'),
+        child: Text('-'),
       ));
     for (int i = 0; i < count; i++) {
       items.add(

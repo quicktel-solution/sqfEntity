@@ -13,9 +13,9 @@
 /// See the License for the specific language governing permissions and
 /// limitations under the License.
 ///**********************************************************************/
-
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:meta/meta.dart';
+
 //import 'package:source_gen/source_gen.dart'; // throws dart:mirror exception when import here
 
 part 'sqfentity_base.dart';
@@ -390,11 +390,14 @@ dynamic convertType(dynamic T) {
     types = collateTypes();
   }
   for (var typ in types.entries) {
-    if (T.toString().contains('${typ.key} ')) {
-      // print('-----------convertType: T:$T----------typ.key:${typ.key}');
+    if (T.toString().contains('${typ.key} ') ||
+        T.toString().contains('\'${typ.key}\'')) {
+      //  print('SQFENTITY FIELD TYPE RECOGNIZED: $T       typ.key:${typ.key}');
       return typ.value;
     }
   }
+  print(
+      'SQFENTITY FIELD TYPE WARNING: ${T.toString()} is not recognised and marked unknown');
   return types['default'];
 }
 
@@ -623,8 +626,7 @@ const ${tocamelCase(_m.modelName)} = SqfEntityModel(
         continue;
       }
       addedTables.add(table.modelName!);
-      strTables.writeln(
-          '''
+      strTables.writeln('''
 // ${table.modelName} TABLE      
 class Table${table.modelName} extends SqfEntityTableBase {
   Table${table.modelName}() {
@@ -662,8 +664,7 @@ class Table${table.modelName} extends SqfEntityTableBase {
     final strTables = StringBuffer()..writeln('// BEGIN TABLES');
     for (final table in _m.databaseTables!
         .where((table) => table.relationType != RelationType.MANY_TO_MANY)) {
-      strTables.writeln(
-          '''
+      strTables.writeln('''
 
 const table${toCamelCase(table.tableName)} = SqfEntityTable(
     tableName: '${table.tableName}' 
@@ -684,8 +685,7 @@ const table${toCamelCase(table.tableName)} = SqfEntityTable(
     }
     strSequences.writeln('// BEGIN SEQUENCES');
     for (var seq in _m.sequences!) {
-      strSequences.writeln(
-          '''
+      strSequences.writeln('''
 // ${seq.sequenceName} SEQUENCE
 class Sequence${seq.modelName} extends SqfEntitySequenceBase {
   Sequence${seq.modelName}() {

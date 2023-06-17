@@ -591,7 +591,7 @@ class SqfEntityModelConverter {
         ..sequenceName = seq.sequenceName
         ..modelName = seq.modelName
         ..minValue = seq.minValue == null ? 0 : seq.minValue!
-        ..maxValue = seq.maxValue == null ? 9223372036854775807 : seq.maxValue!
+        ..maxValue = seq.maxValue == null ? 999999999999999 : seq.maxValue!
         ..startWith = seq.startWith == null ? 1 : seq.startWith!
         ..incrementBy = seq.incrementBy == null ? 1 : seq.incrementBy!
         ..cycle = seq.cycle
@@ -1120,34 +1120,37 @@ class SqfEntityObjectBuilder {
     if (_table.primaryKeyName != null &&
         _table.primaryKeyName!.isNotEmpty &&
         _table.relationType != RelationType.ONE_TO_ONE &&
-        _table.relationType != RelationType.MANY_TO_MANY &&
+        //  _table.relationType != RelationType.MANY_TO_MANY && /xch1
         (withId ||
             _table.primaryKeyType != PrimaryKeyType.integer_auto_incremental)) {
       _retVal.write(',?');
       //print('__createConstructureArgs line:1 yes');
     }
-    if (_table.relationType != RelationType.MANY_TO_MANY) {
-      for (var i = _table.primaryKeyName == null ? 0 : 1;
-          i < _table.primaryKeyNames.length;
-          i++) {
-        _retVal.write(',?');
-        // print('__createConstructureArgs line:2 yes: $i');
-      }
-    }
+    // if (_table.relationType != RelationType.MANY_TO_MANY) {
+    //   for (var i = _table.primaryKeyName == null ? 0 : 1;
+    //       i < _table.primaryKeyNames.length;
+    //       i++) {
+    //     _retVal.write(',?');
+    //     // print('__createConstructureArgs line:2 yes: $i');
+    //   }
+    //}
     for (var i = 0; i < _table.fields!.length; i++) {
       //if (_table.fields![i] is SqfEntityFieldVirtualBase) continue;
-      if (_table.fields![i] is SqfEntityFieldVirtualBase ||
-          (_table.fields![i].isPrimaryKeyField == true &&
-              !withId &&
-              _table.relationType != RelationType.MANY_TO_MANY)) {
+      if (_table.fields![i] is SqfEntityFieldVirtualBase
+          // ||
+          //     (_table.fields![i].isPrimaryKeyField == true &&
+          //         !withId &&
+          //         _table.relationType != RelationType.MANY_TO_MANY)
+          ) {
         continue;
       }
       if (_table.fields![i] is SqfEntityFieldRelationshipBase) {
         final SqfEntityFieldRelationshipBase field =
             _table.fields![i] as SqfEntityFieldRelationshipBase;
         if ((field.relationType == RelationType.MANY_TO_MANY &&
-                _table.relationType != RelationType.MANY_TO_MANY) ||
-            (field.isPrimaryKeyField ?? false)) {
+                _table.relationType != RelationType.MANY_TO_MANY)
+            // &&  (field.isPrimaryKeyField ?? false)
+            ) {
           continue;
         }
       }
@@ -1243,7 +1246,11 @@ class SqfEntityObjectBuilder {
       switch (field.dbType) {
         case DbType.time:
           field.defaultValue =
-              "TimeOfDay(hour: int.parse('${field.defaultValue.replaceAll('\'', '\\\'')}'.split(':')[0]), minute: int.parse('${field.defaultValue.replaceAll('\'', '\\\'')}'.split(':')[1]))";
+              'tryParseTime(${field.defaultValue.replaceAll('\'', '\\\'').toString()})';
+          // "TimeOfDay.fromDateTime(intl.DateFormat(${_model.defaultTimeFormat}).parse(${field.defaultValue.replaceAll('\'', '\\\'').toString()})))";
+          // DateFormat(_model.defaultTimeFormat)
+          // .parse(field.defaultValue.replaceAll('\'', '\\\'').toString());
+          // "TimeOfDay(hour: int.parse('${field.defaultValue.replaceAll('\'', '\\\'')}'.split(':')[0]), minute: int.parse('${field.defaultValue.replaceAll('\'', '\\\'')}'.split(':')[1]))";
           break;
         case DbType.text:
           field.defaultValue =
@@ -1680,9 +1687,9 @@ class SqfEntityObjectBuilder {
     /// upsertAll() method is faster then saveAll() method. upsertAll() should be used when you are sure that the primary key is greater than zero
     /// Returns a BoolCommitResult 
     @override
-    Future<BoolCommitResult> ${_hiddenMethod}upsertAll(List<${_table.modelName}> ${toPluralName(_table._modelLowerCase)}) async {
+    Future<BoolCommitResult> ${_hiddenMethod}upsertAll(List<${_table.modelName}> ${toPluralName(_table._modelLowerCase)}, {bool? exclusive, bool? noResult, bool? continueOnError}) async {
       final results = await _mn${_table.modelName}.rawInsertAll(
-          'INSERT OR REPLACE INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll('this.', '')})  VALUES ($_createConstructureArgsWithId)', ${toPluralName(_table._modelLowerCase)});
+          'INSERT OR REPLACE INTO ${_table.tableName} (${_table.createConstructureWithId.replaceAll('this.', '')})  VALUES ($_createConstructureArgsWithId)', ${toPluralName(_table._modelLowerCase)},exclusive: exclusive, noResult: noResult, continueOnError: continueOnError);
       return results;
     }''';
   }
@@ -2410,7 +2417,7 @@ Future<BoolResult> delete([bool hardDelete=false, bool ignoreBatch=false]) async
     final List<DropdownMenuItem<${_table.modelName}>> items = []
     ..add(DropdownMenuItem(
       value: ${_table.modelName}(),
-      child: Text('Select ${_table.modelName}'),
+      child: Text('-'),
     ));
     for (int i = 0; i < count; i++) {
       items.add(
@@ -2438,7 +2445,7 @@ Future<BoolResult> delete([bool hardDelete=false, bool ignoreBatch=false]) async
     final List<DropdownMenuItem<${_table.primaryKeyTypes[0]}>> items = []
     ..add(DropdownMenuItem(
       value: ${_table.primaryKeyTypes[0] == 'int' ? '0' : '\'0\''},
-      child: Text('Select ${_table.modelName}'),
+      child: Text('-'),
     ));
     for (int i = 0; i < count; i++) {
       items.add(
@@ -3843,12 +3850,13 @@ class SqfEntityTableBase {
           continue;
         }
       }
+
       final consStr = fields![i].toConstructureString();
       _retVal.write(', $consStr');
       if (isQuery) {
         if (fields![i].dbType == DbType.time) {
           _retVal.write(
-              ' != null ? \'\${${fields![i].fieldName}!.hour.toString().padLeft(2, \'0\')}:\${${fields![i].fieldName}!.minute.toString().padLeft(2, \'0\')}:00\' : null');
+              ' != null ? defaultTimeFormat.format(toDateTime(${fields![i].fieldName}!)) : null');
         } else if (fields![i].dbType == DbType.date ||
             fields![i].dbType == DbType.datetime ||
             fields![i].dbType == DbType.datetimeUtc) {
@@ -4510,6 +4518,7 @@ abstract class SqfEntityModelBase {
   }
 }
 
+//region Helpers Functions
 /// SQFENTITY recognise tables that related to each other
 List<TableCollectionBase> _getCollections(
     SqfEntityTableBase table, SqfEntityModelBase _m) {
@@ -4569,13 +4578,7 @@ String toSingularName(String s) => s.endsWith('ies')
             : s;
 
 /// Convert field name to lowercase singular format
-String toSingularLowerName(String s) => s.endsWith('ies')
-    ? '${s.substring(0, s.length - 3).toLowerCase()}y'
-    : s.endsWith('ses') || s.endsWith('oes')
-        ? '${s.substring(0, s.length - 2).toLowerCase()}'
-        : s.endsWith('s')
-            ? s.substring(0, s.length - 1).toLowerCase()
-            : s.toLowerCase();
+String toSingularLowerName(String s) => toSingularName(s).toLowerCase();
 
 /// Set model name by defined if the model name set null
 String toModelName(String? modelName, String definedName) =>
@@ -4884,5 +4887,6 @@ abstract class TableBase extends CrudOperationsBase {
   /// If an insertion was made with the object, it cancels the PK
   void rollbackPk();
 }
+//endregion
 
 // END ENUMS, CLASSES AND ABSTRACTS

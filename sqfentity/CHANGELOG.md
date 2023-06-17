@@ -1,3 +1,21 @@
+## 2.3.0+4
+- fixed issue [281](https://github.com/hhtokpinar/sqfEntity/issues/281)
+  and removed customizing datetime formats.
+  If you want to use DefaultDateTime format. Specify the sqfentity_gen version in pubspec.yaml
+
+  sqfentity_gen: 2.3.0+3
+
+
+## 2.3.0
+- New global default Date/Time Formats
+- Making the viewAdd takes optional object
+- some minor updates
+
+## 2.2.0+6
+- Added optional parameters into saveAll method for batchCommit 
+
+   saveAll({bool? exclusive, bool? noResult, bool? continueOnError})
+
 ## 2.2.0+5
 - Added databasePath parameter into dbModel
 

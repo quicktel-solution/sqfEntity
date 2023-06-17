@@ -869,8 +869,12 @@ ${table.sqlStatement}'''
   /// The result is a list of the result of each operation in the same order if [noResult] is true, the result list is empty (i.e. the id inserted the count of item changed is not returned.
   ///
   /// The batch is stopped if any operation failed If [continueOnError] is true, all the operations in the batch are executed and the failure are ignored (i.e. the result for the given operation will be a DatabaseException)
-  Future<List<dynamic>?> batchCommit() async {
-    return SqfEntityProvider(this).batchCommit();
+  Future<List<dynamic>?> batchCommit(
+      {bool? exclusive, bool? noResult, bool? continueOnError}) async {
+    return SqfEntityProvider(this).batchCommit(
+        exclusive: exclusive,
+        noResult: noResult,
+        continueOnError: continueOnError);
   }
 
   /// Cancels all of the operations in this batch
