@@ -905,7 +905,7 @@ class SqfEntityObjectBuilder {
     }
   
   
-    ${_table.primaryKeyNames.isEmpty ? '' : ''' 
+    ${_table.primaryKeyNames.isEmpty ? '' : '''
     
     /// returns ${_table.modelName} by ID if exist, otherwise returns null
     /// Primary Keys: $_getByIdParametersWithTypes
@@ -2275,7 +2275,7 @@ class ${_table.modelName}FilterBuilder extends ConjunctionBase {
   $_createObjectFieldProperty
 
 
-${_table.objectType == ObjectType.table ? '''  
+${_table.objectType == ObjectType.table ? '''
 
 /// Deletes List<${_table.modelName}> bulk by query 
 /// 
