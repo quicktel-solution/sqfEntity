@@ -103,7 +103,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
   }
 
   /// Run sql command with arguments (arguments is optional)
-  Future<BoolResult> execSQL(String pSql, [List<dynamic>? arguments, String? batchId]) async {
+  Future<BoolResult> execSQL(String pSql,
+      [List<dynamic>? arguments, String? batchId]) async {
     final BoolResult result = BoolResult(success: false);
 
     try {
@@ -224,7 +225,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
     return result;
   }
 
-  Future<BoolResult> delete(QueryParams params, [bool ignoreBatch = false, String? batchId]) async {
+  Future<BoolResult> delete(QueryParams params,
+      [bool ignoreBatch = false, String? batchId]) async {
     final result = BoolResult(success: false);
 
     if ((params.limit != null && params.limit! > 0) ||
@@ -270,7 +272,9 @@ class SqfEntityProvider extends SqfEntityModelBase {
 
     if (_dbModel!.preSaveAction != null && useHook) {
       values = values.map((key, value) => MapEntry(key, value));
-      values = await _dbModel!.preSaveAction!(_tableName!, values, 'UPDATE', batchId, params) as Map<String, dynamic>;
+      values = await _dbModel!.preSaveAction!(
+              _tableName!, values, 'UPDATE', batchId, params)
+          as Map<String, dynamic>;
     }
 
     if (batch == null) {
@@ -284,7 +288,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
           ..successMessage = '$updatedItems items updated';
 
         if (_dbModel!.postSaveAction != null && useHook) {
-          await _dbModel!.postSaveAction!(_tableName!, values, 'UPDATE', params);
+          await _dbModel!.postSaveAction!(
+              _tableName!, values, 'UPDATE', params);
         }
       } catch (e) {
         result.errorMessage = e.toString();
@@ -308,7 +313,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
     return retVal;
   }
 
-  Future<int?> update<T extends TableBase>(T obj, [bool useHook = true, String? batchId]) async {
+  Future<int?> update<T extends TableBase>(T obj,
+      [bool useHook = true, String? batchId]) async {
     try {
       final Batch? batch = _getBatch(batchId, false);
 
@@ -335,11 +341,13 @@ class SqfEntityProvider extends SqfEntityModelBase {
     }
   }
 
-  Future<int?> updateOrThrow<T extends TableBase>(T obj, [bool useHook = true, String? batchId]) async {
+  Future<int?> updateOrThrow<T extends TableBase>(T obj,
+      [bool useHook = true, String? batchId]) async {
     if (useHook && _dbModel!.preSaveAction != null) {
-      obj = await _dbModel!.preSaveAction!(_tableName!, obj, 'UPDATE', batchId) as T;
+      obj = await _dbModel!.preSaveAction!(_tableName!, obj, 'UPDATE', batchId)
+          as T;
     }
-    
+
     final Batch? batch = _getBatch(batchId, false);
 
     final data = obj.toMap(forQuery: true);
@@ -387,10 +395,11 @@ class SqfEntityProvider extends SqfEntityModelBase {
     }
   }
 
-  Future<int?> insertOrThrow<T extends TableBase>(
-      T obj, bool ignoreBatch, [bool useHook = true, String? batchId]) async {
+  Future<int?> insertOrThrow<T extends TableBase>(T obj, bool ignoreBatch,
+      [bool useHook = true, String? batchId]) async {
     if (useHook && _dbModel!.preSaveAction != null) {
-      obj = await _dbModel!.preSaveAction!(_tableName!, obj, 'INSERT', batchId) as T;
+      obj = await _dbModel!.preSaveAction!(_tableName!, obj, 'INSERT', batchId)
+          as T;
     }
 
     final Batch? batch = _getBatch(batchId, ignoreBatch);
@@ -410,8 +419,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
     }
   }
 
-  Future<int?> rawInsert(
-      String pSql, List<dynamic>? params, bool ignoreBatch, [bool useHook = false, String? batchId]) async {
+  Future<int?> rawInsert(String pSql, List<dynamic>? params, bool ignoreBatch,
+      [bool useHook = false, String? batchId]) async {
     int result = 0;
     try {
       // Extract records to pass as an argument to preSaveAction
@@ -427,7 +436,8 @@ class SqfEntityProvider extends SqfEntityModelBase {
       final action = pSql.contains('OR REPLACE') ? 'UPSERT' : 'INSERT';
 
       if (useHook && _dbModel!.preSaveAction != null) {
-        final values = await _dbModel!.preSaveAction!(_tableName!, record, action, batchId);
+        final values = await _dbModel!.preSaveAction!(
+            _tableName!, record, action, batchId);
         for (int i = 0; i < params.length; i++) {
           params[i] = values[keys[i].trim()];
         }
@@ -448,7 +458,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
       }
     } catch (e) {
       print(e.toString());
-      rethrow; // We need to throw any error so that if insert fails, postSaveAction shouldn't work
+      rethrow;
     }
     return result;
   }
@@ -476,6 +486,7 @@ class SqfEntityProvider extends SqfEntityModelBase {
         result.errorMessage = e.toString();
         print('SQFENTITY ERROR while run execSQLList:');
         print(result.toString());
+        rethrow;
       }
       openedBatch[_dbModel!.databaseName!] = null;
     } else {
@@ -578,19 +589,20 @@ class SqfEntityProvider extends SqfEntityModelBase {
     if (ignoreSystemBatch) {
       return null;
     }
-  
+
     return openedBatch[_dbModel!.databaseName!];
   }
 
   // Transactions
   Future<String> startBatch() async {
-    final String transactionId = '${Random().nextInt(10000).toString()}-${DateTime.now().microsecondsSinceEpoch.toString()}';
+    final String transactionId =
+        '${Random().nextInt(10000).toString()}-${DateTime.now().microsecondsSinceEpoch.toString()}';
     final Database db = (await this.db)!;
     openedBatch[transactionId] = db.batch();
     return transactionId;
   }
 
-  Future<List<dynamic>?> commitBatch(String batchId, 
+  Future<List<dynamic>?> commitBatch(String batchId,
       {bool? exclusive, bool? noResult, bool? continueOnError}) async {
     if (openedBatch[batchId] == null) {
       throw 'No transaction with batchId found or already committed';
